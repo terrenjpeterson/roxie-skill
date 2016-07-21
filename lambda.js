@@ -95,7 +95,7 @@ function onIntent(intentRequest, session, callback) {
     } else if ("AMAZON.StartOverIntent" === intentName) {
         getWelcomeResponse(callback);
     } else if ("AMAZON.HelpIntent" === intentName) {
-        getHelpResponse(callback);
+        getHelpResponse(session, callback);
     } else if ("AMAZON.RepeatIntent" === intentName) {
         getWelcomeResponse(callback);
     } else if ("AMAZON.StopIntent" === intentName || "AMAZON.CancelIntent" === intentName) {
@@ -121,7 +121,7 @@ function onSessionEnded(sessionEndedRequest, session) {
 function getWelcomeResponse(callback) {
     var sessionAttributes = {};
     var shouldEndSession = false;
-    var cardTitle = "Welcome to Roxie";
+    var cardTitle = "Welcome to Robot Roxie";
 
     var speechOutput = "Hello, my name is Roxie and I'm a really big fan of playing baseball. If you would " +
         "like to play a game, say Start Game and I will walk you through the steps needed to play a two " +
@@ -140,9 +140,9 @@ function getWelcomeResponse(callback) {
 }
 
 // this is the function that gets called to format the response to the user when they ask for help
-function getHelpResponse(callback) {
+function getHelpResponse(session, callback) {
     var sessionAttributes = {};
-    var cardTitle = "Help";
+    var cardTitle = "Robot Roxie Help";
     // this will be what the user hears after asking for help
 
     // first check if a session exists, if so save so it won't be lost
@@ -150,15 +150,16 @@ function getHelpResponse(callback) {
         sessionAttributes = session.attributes;
     }
 
-    var speechOutput = "My name is Roxie. I'm here to help you track game play for a baseball game. " +
-        "To begin, say Start Game. Then for each pitch, please say Pitch Ball and I will track how " +
-        "many pitches are thrown. Let me know if the pitch was a strike, ball, or hit, and I will " +
-        "keep track for you while you focus on the game. Now lets Play Ball!";
+    var speechOutput = "There are two modes for Robot Roxie. One is a general practice mode where " +
+        "all you need to do is say Pitch Ball and I will interact by recording a pitch. There is " +
+        "also a game mode that begins by saying Start Game. I will then coordinate a two player " +
+        "game where each will take sides and have turns having balls pitched to them. After each " +
+        "pitch I will ask for a response on what the outcome is, either strike, ball, or hit.";
 
     // if the user still does not respond, they will be prompted with this additional information
     
     var repromptText = "Please tell me how I can help you by saying phrases like, " +
-        "Pitch Ball.";
+        "Pitch Ball or Start Game.";
 
     var shouldEndSession = false;
 
@@ -168,7 +169,7 @@ function getHelpResponse(callback) {
 
 // this is the function that gets called to format the response when the user is done
 function handleSessionEndRequest(callback) {
-    var cardTitle = "Thanks for using Roxie";
+    var cardTitle = "Thanks for using Robot Roxie";
     
     var speechOutput = "Thank you for playing with Roxie. Have a nice day!";
 
@@ -182,7 +183,7 @@ function handleSessionEndRequest(callback) {
 // This processes logic around a pitch being thrown, including communicating to the queue
 
 function pitchBall(intent, session, callback) {
-    var cardTitle = "Roxie the Robo Pitcher";
+    var cardTitle = "Roxie the Robot Pitcher";
     var sessionAttributes = {};
     var shouldEndSession = false;
 
@@ -244,7 +245,7 @@ function pitchBall(intent, session, callback) {
 // This processes logic around a pitch being thrown, including communicating to the queue
 
 function startGame(intent, session, callback) {
-    var cardTitle = "Roxie the Robo Pitcher";
+    var cardTitle = "Roxie the Robot Pitcher";
     var sessionAttributes = {};
     var shouldEndSession = false;
 
@@ -297,32 +298,31 @@ function updatePlayerName(intent, session, callback) {
     var shouldEndSession = false;
     var speechOutput = "";
 
-    var cardOutput = "Setting Player Name";
-
-    // first check if a session exists, if so assume playing a game and use, if not, assume practice mode.
-    if (session.attributes) {
+    if (session.attributes && JSON.stringify(session.attributes) != "{}") {
         sessionAttributes = session.attributes;
-    }
 
-    if (intent.slots.Name.value) {
-        console.log(intent.slots.Name.value);
-        console.log(intent.slots.PlayerNum.value);
-        if (intent.slots.PlayerNum.value == 1 || intent.slots.PlayerNum.value == 2) {
-            console.log("setting player name");
-            speechOutput = "Player Number " + intent.slots.PlayerNum.value + " set to " + intent.slots.Name.value + ". ";
-            if (intent.slots.PlayerNum.value == 1)
-                sessionAttributes.data.playerOne.name = intent.slots.Name.value;
-            else
-                sessionAttributes.data.playerTwo.name = intent.slots.Name.value;
-        } else
-            speechOutput = "Sorry, this is a two player game so please set values to either one or two. ";
+        if (intent.slots.Name.value) {
+            if (intent.slots.PlayerNum.value == 1 || intent.slots.PlayerNum.value == 2) {
+                console.log("setting player name");
+                speechOutput = "Player Number " + intent.slots.PlayerNum.value + " set to " + intent.slots.Name.value + ". ";
+                if (intent.slots.PlayerNum.value == 1)
+                    sessionAttributes.data.playerOne.name = intent.slots.Name.value;
+                else
+                    sessionAttributes.data.playerTwo.name = intent.slots.Name.value;
+            } else
+                speechOutput = "Sorry, this is a two player game so please set values to either one or two. ";
+        } else {
+            speechOutput = "Sorry, that name isn't valid. ";
+        }
+        var speechOutput = speechOutput + "If you're ready to begin playing, say Pitch Ball.";
+        var repromptText = "If you're ready to begin playing, say Pitch Ball.";
+
     } else {
-        speechOutput = "Sorry, that name isn't valid. ";
+        var speechOutput = "Sorry, this feature isn't available outside of game mode. If you would like to " +
+            "play a game, please say Start Game.";
+        var repromptText = "If you would like to start a game and have me track game play, please say Start Game.";
     }
         
-    var speechOutput = speechOutput + "If you're ready to begin playing, say Pitch Ball.";
-    var repromptText = "If you're ready to begin playing, say Pitch Ball.";
-
     callback(sessionAttributes,
         buildSpeechletResponse(cardTitle, speechOutput, speechOutput, repromptText, shouldEndSession));
 }
@@ -334,20 +334,19 @@ function skipPitch(intent, session, callback) {
     var sessionAttributes = {};
     var shouldEndSession = false;
 
-    var cardOutput = "Bad Pitch - Skipping";
-
-    // first check if a session exists, if so assume playing a game and use, if not, assume practice mode.
-    if (session.attributes) {
+    if (session.attributes && JSON.stringify(session.attributes) != "{}") {
         sessionAttributes = session.attributes;
-        sessionAttributes.data.currPitch -= 1;        
+        sessionAttributes.data.currPitch -= 1; 
+        var speechOutput = "We will count that one as a ball. Ready to try again? Just say Pitch Ball.";
+        var repromptText = "Ready for the next pitch? If so, please say Pitch Ball.";
+    } else {
+        var speechOutput = "Sorry, this feature isn't available outside of game mode. If you would like to " +
+            "play a game, please say Start Game.";
+        var repromptText = "If you would like to start a game and have me track game play, please say Start Game.";
     }
-
-    var speechOutput = "We will count that one as a ball. Ready to try again? Just say Pitch Ball.";
-    var repromptText = "Ready for the next pitch? If so, please say Pitch Ball.";
     
     callback(sessionAttributes,
         buildSpeechletResponse(cardTitle, speechOutput, speechOutput, repromptText, shouldEndSession));    
-    
 }
 
 // This processes a strike incrementing the pitch count. Checks for ending the inning and the game are also made
@@ -356,40 +355,41 @@ function countPitch(intent, session, callback) {
     var cardTitle = "Strike Called";
     var sessionAttributes = {};
     var shouldEndSession = false;
-    var repromptText = "";
-
-    var cardOutput = "Strike Called";
 
     // first check if a session exists, if so assume playing a game and use, if not, assume practice mode.
-    if (session.attributes) {
+    if (session.attributes && JSON.stringify(session.attributes) != "{}") {
         sessionAttributes = session.attributes;
-    }
 
-    console.log(sessionAttributes.data.gameLength.pitchPerInning);
+        var speechOutput = "I will count pitch number " + sessionAttributes.data.currPitch + " as a strike. ";
 
-    var speechOutput = "I will count pitch number " + sessionAttributes.data.currPitch + " as a strike. ";
-
-    if (sessionAttributes.data.gameLength.pitchPerInning > sessionAttributes.data.currPitch) {
-        speechOutput = speechOutput + "Ready for the next pitch? Just say Pitch Ball.";
-        repromptText = "Ready for the next pitch? If so, please say Pitch Ball.";
-    } else {
-        if (sessionAttributes.data.homeTeamAtBat == false) {
-            sessionAttributes.data.homeTeamAtBat = true;
-            sessionAttributes.data.currPitch = 0;
-            speechOutput = speechOutput + "Time to switch sides. It's now " + sessionAttributes.data.playerTwo.name +
-                "'s turn to hit. ";
+        if (sessionAttributes.data.gameLength.pitchPerInning > sessionAttributes.data.currPitch) {
+            speechOutput = speechOutput + "Ready for the next pitch? Just say Pitch Ball.";
+            repromptText = "Ready for the next pitch? If so, please say Pitch Ball.";
         } else {
-            sessionAttributes.data.homeTeamAtBat = false;
-            sessionAttributes.data.currPitch = 0;
-            sessionAttributes.data.currInning += 1;
-            speechOutput = speechOutput + "Time to switch sides and start inning " +
-                sessionAttributes.data.currInning + ". It's now " + sessionAttributes.data.playerOne.name +
-                "'s turn to hit. ";
+            if (sessionAttributes.data.homeTeamAtBat == false) {
+                sessionAttributes.data.homeTeamAtBat = true;
+                sessionAttributes.data.currPitch = 0;
+                speechOutput = speechOutput + "Time to switch sides. It's now " + sessionAttributes.data.playerTwo.name +
+                    "'s turn to hit. ";
+                repromptText = "Time to switch sides. Please say Pitch Ball when ready.";
+            } else {
+                sessionAttributes.data.homeTeamAtBat = false;
+                sessionAttributes.data.currPitch = 0;
+                sessionAttributes.data.currInning += 1;
+                speechOutput = speechOutput + "Time to switch sides and start inning " +
+                    sessionAttributes.data.currInning + ". It's now " + sessionAttributes.data.playerOne.name +
+                    "'s turn to hit. ";
+                repromptText = "Time to switch sides. Please say Pitch Ball when ready.";
+            }
         }
+    } else {
+        var speechOutput = "Sorry, this feature isn't available outside of game mode. If you would like to " +
+            "play a game, please say Start Game.";
+        var repromptText = "If you would like to start a game and have me track game play, please say Start Game.";
     }
 
     callback(sessionAttributes,
-        buildSpeechletResponse(cardTitle, speechOutput, speechOutput, repromptText, shouldEndSession));
+        buildSpeechletResponse(cardTitle, speechOutput, speechOutput, repromptText, shouldEndSession));    
 }
 
 // This processes a hit incrementing the pitch count and score. Checks for ending the inning and the game are also made.
@@ -400,43 +400,44 @@ function addScore(intent, session, callback) {
     var shouldEndSession = false;
     var repromptText = "";
 
-    var cardOutput = "Base Hit";
-
-    // first check if a session exists, if so assume playing a game and use, if not, assume practice mode.
-    if (session.attributes) {
+    if (session.attributes && JSON.stringify(session.attributes) != "{}") {
         sessionAttributes = session.attributes;
-    }
 
-    // first process the scoring logic
-    var speechOutput = "Nice hit! ";
+        var speechOutput = "Nice hit! ";
 
-    if (sessionAttributes.data.homeTeamAtBat)
-        sessionAttributes.data.playerTwo.score += 1;
-    else
-        sessionAttributes.data.playerOne.score += 1;
+        if (sessionAttributes.data.homeTeamAtBat)
+            sessionAttributes.data.playerTwo.score += 1;
+        else
+            sessionAttributes.data.playerOne.score += 1;
 
-    speechOutput = speechOutput + "The score is now " + 
-        sessionAttributes.data.playerOne.name + " " + sessionAttributes.data.playerOne.score + " and " +
-        sessionAttributes.data.playerTwo.name + " " + sessionAttributes.data.playerTwo.score + ". ";
+        speechOutput = speechOutput + "The score is now " + 
+            sessionAttributes.data.playerOne.name + " " + sessionAttributes.data.playerOne.score + " and " +
+            sessionAttributes.data.playerTwo.name + " " + sessionAttributes.data.playerTwo.score + ". ";
     
-    // then prepare for the next pitch checking if the inning is over
-    if (sessionAttributes.data.gameLength.pitchPerInning > sessionAttributes.data.currPitch) {
-        speechOutput = speechOutput + "Ready for the next pitch? Just say Pitch Ball.";
-        repromptText = "Ready for the next pitch? If so, please say Pitch Ball.";
-    } else {
-        if (sessionAttributes.data.homeTeamAtBat == false) {
-            sessionAttributes.data.homeTeamAtBat = true;
-            sessionAttributes.data.currPitch = 0;
-            speechOutput = speechOutput + "Time to switch sides. It's now " + sessionAttributes.data.playerTwo.name +
-                "'s turn to hit. ";
+        // then prepare for the next pitch checking if the inning is over
+        if (sessionAttributes.data.gameLength.pitchPerInning > sessionAttributes.data.currPitch) {
+            speechOutput = speechOutput + "Ready for the next pitch? Just say Pitch Ball.";
+            repromptText = "Ready for the next pitch? If so, please say Pitch Ball.";
         } else {
-            sessionAttributes.data.homeTeamAtBat = false;
-            sessionAttributes.data.currPitch = 0;
-            sessionAttributes.data.currInning += 1;
-            speechOutput = speechOutput + "Time to switch sides and start inning " +
-                sessionAttributes.data.currInning + ". It's now " + sessionAttributes.data.playerOne.name +
-                "'s turn to hit. ";
+            if (sessionAttributes.data.homeTeamAtBat == false) {
+                sessionAttributes.data.homeTeamAtBat = true;
+                sessionAttributes.data.currPitch = 0;
+                speechOutput = speechOutput + "Time to switch sides. It's now " + sessionAttributes.data.playerTwo.name +
+                    "'s turn to hit. ";
+            } else {
+                sessionAttributes.data.homeTeamAtBat = false;
+                sessionAttributes.data.currPitch = 0;
+                sessionAttributes.data.currInning += 1;
+                speechOutput = speechOutput + "Time to switch sides and start inning " +
+                    sessionAttributes.data.currInning + ". It's now " + sessionAttributes.data.playerOne.name +
+                    "'s turn to hit. ";
+            }
         }
+
+    } else {
+        var speechOutput = "Sorry, this feature isn't available outside of game mode. If you would like to " +
+            "play a game, please say Start Game.";
+        var repromptText = "If you would like to start a game and have me track game play, please say Start Game.";
     }
 
     callback(sessionAttributes,
