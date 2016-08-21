@@ -1,0 +1,43 @@
+AMAZON.StartOverIntent start
+AMAZON.StartOverIntent begin
+AMAZON.StartOverIntent new
+
+AMAZON.StopIntent goodbye
+AMAZON.StopIntent exit
+AMAZON.StopIntent quit
+
+PitchBall practice
+PitchBall practice mode
+PitchBall pitch ball
+PitchBall pitch the ball
+PitchBall pitch
+
+StartGame start game
+StartGame start a game
+StartGame start the game
+StartGame begin game
+StartGame begin the game
+
+SetPlayerName set player {PlayerNum} name to {Name}
+SetPlayerName set player name {PlayerNum} to {Name}
+SetPlayerName change player {PlayerNum} name to {Name}
+SetPlayerName change player name {PlayerNum} to {Name}
+SetPlayerName modify player {PlayerNum} name to {Name}
+SetPlayerName modify player name {PlayerNum} to {Name}
+
+BadPitch ball
+BadPitch bad pitch
+BadPitch too high
+BadPitch too low
+BadPitch outside
+
+Strike strike
+Strike missed
+Strike foul ball
+Strike out
+
+BaseHit base hit
+BaseHit hit
+BaseHit single
+BaseHit home run
+BaseHit score

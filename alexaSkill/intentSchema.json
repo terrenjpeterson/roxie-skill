@@ -1,0 +1,44 @@
+{
+  "intents": [
+    {
+      "intent": "PitchBall"
+    },
+    {
+      "intent": "StartGame"
+    },
+    {
+      "intent": "SetPlayerName",
+	  "slots": [
+        {
+          "name": "Name",
+          "type": "AMAZON.US_FIRST_NAME"
+        },
+        {
+          "name": "PlayerNum",
+          "type": "LIST_OF_PLAYER_NUMBERS"
+        }
+      ]      
+    },
+    {
+      "intent": "BadPitch"
+    },
+    {
+      "intent": "Strike"
+    },
+    {
+      "intent": "BaseHit"
+    },
+    {
+      "intent": "AMAZON.StartOverIntent"
+    },
+    {
+      "intent": "AMAZON.HelpIntent"
+    },
+    {
+      "intent": "AMAZON.StopIntent"
+    },
+    {
+      "intent": "AMAZON.CancelIntent"
+    }
+  ]
+}
